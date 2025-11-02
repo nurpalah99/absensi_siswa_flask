@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h3>📊 Laporan Absensi Per Kelas</h3>
+
+  <!-- Form Filter -->
+  <form method="POST" class="row g-3 mb-4 mt-2">
+    <div class="col-md-3">
+      <label class="form-label">Pilih Kelas</label>
+      <select name="kelas" class="form-select" required>
+        <option value="">-- Pilih Kelas --</option>
+        {% for k in semua_kelas %}
+        <option value="{{ k }}" {% if k == kelas_filter %}selected{% endif %}>{{ k }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Tanggal Awal</label>
+      <input type="date" name="tgl_awal" class="form-control" value="{{ tgl_awal }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Tanggal Akhir</label>
+      <input type="date" name="tgl_akhir" class="form-control" value="{{ tgl_akhir }}">
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+      <button class="btn btn-primary w-100" type="submit">Tampilkan</button>
+    </div>
+  </form>
+
+  {% if data_rekap %}
+  <!-- Tombol Ekspor -->
+  <div class="mb-3 btn-group">
+    <a href="{{ url_for('staf.export_laporan_per_kelas_pdf', kelas=kelas_filter, tgl_awal=tgl_awal, tgl_akhir=tgl_akhir) }}"
+       class="btn btn-danger">🖨 Cetak PDF</a>
+    <a href="{{ url_for('staf.export_laporan_per_kelas_excel', kelas=kelas_filter, tgl_awal=tgl_awal, tgl_akhir=tgl_akhir) }}"
+       class="btn btn-success">⬇️ Ekspor Excel</a>
+  </div>
+
+  <!-- Tabel Rekap -->
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped align-middle">
+      <thead class="table-dark text-center">
+        <tr>
+          <th>NIS</th>
+          <th>Nama</th>
+          <th>Hadir</th>
+          <th>Terlambat</th>
+          <th>Izin</th>
+          <th>Sakit</th>
+          <th>Alpa</th>
+          <th>Bolos</th>
+          <th>Total</th>
+          <th>% Hadir</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set total_hadir = 0 %}
+        {% set total_terlambat = 0 %}
+        {% set total_izin = 0 %}
+        {% set total_sakit = 0 %}
+        {% set total_alpa = 0 %}
+        {% set total_bolos = 0 %}
+        {% set total_persen = 0 %}
+        {% set jumlah_siswa = data_rekap|length %}
+
+        {% for s in data_rekap %}
+        {% set persen_hadir = (s.hadir / s.total * 100) if s.total > 0 else 0 %}
+        <tr class="text-center">
+          <td>{{ s.nis }}</td>
+          <td class="text-start">{{ s.nama }}</td>
+          <td>{{ s.hadir }}</td>
+          <td>{{ s.terlambat }}</td>
+          <td>{{ s.izin }}</td>
+          <td>{{ s.sakit }}</td>
+          <td>{{ s.alpa }}</td>
+          <td>{{ s.bolos }}</td>
+          <td><strong>{{ s.total }}</strong></td>
+          <td>{{ "%.1f"|format(persen_hadir) }}%</td>
+        </tr>
+        {% set total_hadir = total_hadir + s.hadir %}
+        {% set total_terlambat = total_terlambat + s.terlambat %}
+        {% set total_izin = total_izin + s.izin %}
+        {% set total_sakit = total_sakit + s.sakit %}
+        {% set total_alpa = total_alpa + s.alpa %}
+        {% set total_bolos = total_bolos + s.bolos %}
+        {% set total_persen = total_persen + persen_hadir %}
+        {% endfor %}
+
+        <!-- Baris Total Kelas -->
+        <tr class="fw-bold table-secondary text-center">
+          <td colspan="2">TOTAL</td>
+          <td>{{ total_hadir }}</td>
+          <td>{{ total_terlambat }}</td>
+          <td>{{ total_izin }}</td>
+          <td>{{ total_sakit }}</td>
+          <td>{{ total_alpa }}</td>
+          <td>{{ total_bolos }}</td>
+          <td>{{ total_hadir + total_terlambat + total_izin + total_sakit + total_alpa + total_bolos }}</td>
+          <td>{{ "%.1f"|format(total_persen / jumlah_siswa) }}%</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Ringkasan -->
+  <div class="alert alert-info mt-3">
+    <strong>📈 Rata-rata Kehadiran Kelas {{ kelas_filter }}:</strong>
+    {{ "%.1f"|format(total_persen / jumlah_siswa) }}%
+  </div>
+
+  {% else %}
+  <p class="text-muted">Silakan pilih kelas dan rentang tanggal untuk melihat rekap absensi.</p>
+  {% endif %}
+</div>
+{% endblock %}

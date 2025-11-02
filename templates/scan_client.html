@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Scan QR Absensi</title>
+  <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <h3>📷 Scan QR Absensi</h3>
+  <div id="reader" style="width:100%"></div>
+  <div id="result" style="margin-top:10px; font-size:18px;"></div>
+
+  <script>
+    const server = window.location.origin;
+    function onScanSuccess(decodedText) {
+      document.getElementById('result').innerText = 'Mencatat ' + decodedText;
+      fetch(server + '/api/scan', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({nis: decodedText, scanner_id: 'hp-01'})
+      })
+      .then(r => r.json())
+      .then(res => {
+        document.getElementById('result').innerText = res.ok ? res.msg : res.msg;
+      });
+    }
+    new Html5Qrcode("reader").start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onScanSuccess);
+  </script>
+</body>
+</html>

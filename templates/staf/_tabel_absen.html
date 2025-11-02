@@ -1,0 +1,107 @@
+<table id="tabelAbsen" class="table table-striped table-bordered align-middle">
+  <thead class="table-dark text-center">
+    <tr>
+      <th>No</th>
+      <th>NIS</th>
+      <th>Nama</th>
+      <th>Kelas</th>
+      <th>Jam Masuk</th>
+      <th>Jam Pulang</th>
+      <th>Status</th>
+      <th>Keterangan</th>
+      <th>Aksi</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in data %}
+    <tr data-id="{{ row.id }}">
+      <td class="text-center">{{ loop.index }}</td>
+      <td class="text-center">{{ row.nis or '-' }}</td>
+      <td>{{ row.nama or '-' }}</td>
+      <td class="text-center">{{ row.kelas or '-' }}</td>
+      <td class="text-center">{{ row.jam_masuk or '-' }}</td>
+      <td class="text-center">{{ row.jam_pulang or '-' }}</td>
+      <td class="text-center">
+        {% if row.status == 'Hadir' %}
+          <span class="badge bg-success">{{ row.status }}</span>
+        {% elif row.status == 'Terlambat' %}
+          <span class="badge bg-warning text-dark">{{ row.status }}</span>
+        {% elif row.status == 'Alpa' %}
+          <span class="badge bg-danger">{{ row.status }}</span>
+        {% elif row.status == 'Belum Absen' %}
+          <span class="badge bg-secondary">{{ row.status }}</span>
+        {% else %}
+          <span class="badge bg-info text-dark">{{ row.status }}</span>
+        {% endif %}
+      </td>
+      <td>{{ row.keterangan or '' }}</td>
+      <td class="text-center">
+        <!-- Tombol edit selalu aktif -->
+        <button class="btn btn-sm btn-outline-primary btnEdit"
+                data-id="{{ row.id or 0 }}"
+                data-nama="{{ row.nama }}"
+                data-status="{{ row.status }}"
+                data-ket="{{ row.keterangan }}"
+                data-jammasuk="{{ row.jam_masuk }}"
+                data-jampulang="{{ row.jam_pulang }}">
+          <i class="bi bi-pencil-square"></i>
+        </button>
+        <button class="btn btn-sm btn-danger btnHapusAbsen" data-id="{{ row.id }}">
+          <i class="bi bi-trash"></i> Hapus
+        </button>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<!-- ==================== MODAL EDIT ABSENSI ==================== -->
+<div class="modal fade" id="modalEditAbsen" tabindex="-1" aria-labelledby="editAbsenLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="editAbsenLabel"><i class="bi bi-pencil-square"></i> Edit Absensi</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formEditAbsen">
+          <input type="hidden" id="editId">
+          <div class="mb-2">
+            <label class="form-label">Nama Siswa</label>
+            <input type="text" id="editNama" class="form-control" readonly>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Status</label>
+            <select id="editStatus" class="form-select">
+              <option value="Hadir">Hadir</option>
+              <option value="Terlambat">Terlambat</option>
+              <option value="Alpa">Alpa</option>
+              <option value="Izin">Izin</option>
+              <option value="Sakit">Sakit</option>
+              <option value="Pulang Cepat">Pulang Cepat</option>
+            </select>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-2">
+              <label class="form-label">Jam Masuk</label>
+              <input type="time" id="editJamMasuk" class="form-control">
+            </div>
+            <div class="col-md-6 mb-2">
+              <label class="form-label">Jam Pulang</label>
+              <input type="time" id="editJamPulang" class="form-control">
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label">Keterangan</label>
+            <textarea id="editKeterangan" class="form-control" rows="2"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Batal</button>
+        <button type="button" id="btnSimpanEdit" class="btn btn-primary btn-sm">Simpan Perubahan</button>
+      </div>
+    </div>
+  </div>
+</div>
+

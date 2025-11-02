@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Login - Absensi Siswa{% endblock %}
+{% block content %}
+
+<style>
+  body {
+    background: linear-gradient(135deg, #74b9ff, #0984e3);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Poppins", sans-serif;
+  }
+
+  .card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+
+  .card-body {
+    padding: 2rem;
+  }
+
+  .card h4 {
+    font-weight: 600;
+    color: #2d3436;
+  }
+
+  .form-control {
+    border-radius: 0.7rem;
+  }
+
+  .btn-primary {
+    background-color: #0984e3;
+    border: none;
+    border-radius: 0.7rem;
+    font-weight: 600;
+    transition: 0.2s;
+  }
+
+  .btn-primary:hover {
+    background-color: #74b9ff;
+    color: #2d3436;
+  }
+
+  footer {
+    position: absolute;
+    bottom: 10px;
+    text-align: center;
+    width: 100%;
+    color: #fff;
+    font-size: 0.85rem;
+  }
+
+  .logo-top {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .logo-top img {
+    height: 50px;
+  }
+</style>
+
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-5">
+      <div class="card p-3">
+        <div class="card-body">
+          <div class="logo-top">
+            <img src="{{ url_for('static', filename='logo_prov.png') }}" alt="Logo Provinsi">
+            <img src="{{ url_for('static', filename='logo_sekolah/logo.png') }}" alt="Logo Sekolah">
+          </div>
+
+          <h4 class="text-center mb-3">Login Sistem Absensi Siswa</h4>
+
+          <form method="POST" action="/login">
+            <div class="mb-3">
+              <label for="username" class="form-label">Username</label>
+              <input type="text" id="username" name="username" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Password</label>
+              <input type="password" id="password" name="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Masuk</button>
+          </form>
+
+          {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="alert alert-danger mt-3 text-center">{{ messages[0] }}</div>
+          {% endif %}
+          {% endwith %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  &copy; 2025 Sistem Absensi SMKN 14 Kab. Tangerang
+</footer>
+
+{% endblock %}

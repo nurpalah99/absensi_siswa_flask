@@ -1,0 +1,31 @@
+{% extends "admin/base_admin.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4>📥 Import Data User dari Excel</h4>
+  <p class="text-muted">Pastikan file Excel Anda mengikuti format yang benar. Download template di bawah ini.</p>
+
+  <a href="{{ url_for('static', filename='upload/import_user_template.xlsx') }}" class="btn btn-outline-success btn-sm mb-3">
+    📄 Unduh Template Excel
+  </a>
+
+  <form method="POST" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label for="file" class="form-label">Pilih File Excel</label>
+      <input type="file" class="form-control" name="file" accept=".xlsx,.xls" required>
+    </div>
+    <button type="submit" class="btn btn-primary">🚀 Import Sekarang</button>
+    <a href="{{ url_for('admin.data_user') }}" class="btn btn-secondary">Kembali</a>
+  </form>
+
+  <hr class="my-4">
+  <h6>📘 Keterangan Kolom Excel:</h6>
+  <ul>
+    <li><b>nama</b> – Nama lengkap user (misal: Siti Rahmawati, S.Pd)</li>
+    <li><b>username</b> – Username login unik</li>
+    <li><b>nip</b> – NIP pegawai/guru (boleh kosong)</li>
+    <li><b>role</b> – admin, staf, guru, guru_bk, wakasek, kepala_sekolah</li>
+    <li><b>wali_kelas</b> – Diisi jika guru wali kelas (contoh: X IPA 2)</li>
+    <li><b>status</b> – aktif / nonaktif</li>
+  </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,186 @@
+{% extends 'staf/base_staf.html' %}
+{% block content %}
+<div class="container-fluid px-4">
+  <h4 class="fw-bold mb-4">
+    <i class="bi bi-people"></i> Kelola Absensi — {{ tanggal_hari_ini }}
+  </h4>
+
+  <!-- Filter -->
+  <div class="card shadow-sm p-3 mb-4">
+    <form id="formFilter" class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label for="tanggal" class="form-label fw-semibold">Tanggal</label>
+        <input type="date" id="tanggal" name="tanggal" class="form-control" value="{{ tanggal_hari_ini }}">
+      </div>
+      <div class="col-md-4">
+        <label for="kelas" class="form-label fw-semibold">Kelas</label>
+        <select id="kelas" name="kelas" class="form-select">
+          <option value="">-- Semua Kelas --</option>
+          {% for kls in semua_kelas %}
+            <option value="{{ kls }}">{{ kls }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="button" id="btnTampilkan" class="btn btn-primary w-100">
+          <i class="bi bi-search"></i> Tampilkan
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Tombol Aksi -->
+  {% if session['role'] in ['admin', 'staf'] %}
+  <div class="d-flex flex-wrap gap-2 justify-content-start mb-4">
+    <button id="btnPulangMassal" class="btn btn-success">
+      <i class="bi bi-person-check"></i> Pulang Massal
+    </button>
+    <button id="btnKoreksiMassal" class="btn btn-info text-white">
+      <i class="bi bi-arrow-repeat"></i> Koreksi Massal
+    </button>
+    <button id="btnKoreksiTerlambat" class="btn btn-warning text-dark">
+      <i class="bi bi-clock-history"></i> Koreksi Terlambat
+    </button>
+    <button id="btnTutupAbsen" class="btn btn-danger text-white">
+      <i class="bi bi-lock"></i> Tutup Absen
+    </button>
+  </div>
+  {% endif %}
+
+  <!-- Container Tabel -->
+  <div id="absenContainer">
+    <div class="alert alert-info text-center shadow-sm">
+      Pilih tanggal dan kelas untuk menampilkan daftar absensi.
+    </div>
+  </div>
+</div>
+
+<!-- ==================== LIBRARIES ==================== -->
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<link href="https://cdn.datatables.net/1.13.5/css/jquery.dataTables.min.css" rel="stylesheet">
+<script src="https://cdn.datatables.net/1.13.5/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- ==================== SCRIPT ==================== -->
+<script>
+$(document).ready(function () {
+  console.log("✅ kelola_absen.js aktif");
+
+  // ============ Tampilkan Data ============
+  $("#btnTampilkan").on("click", function () {
+    const tanggal = $("#tanggal").val();
+    const kelas = $("#kelas").val();
+
+    if (!tanggal) {
+      Swal.fire({ icon: "warning", title: "Tanggal belum dipilih", text: "Silakan pilih tanggal terlebih dahulu." });
+      return;
+    }
+
+    $("#absenContainer").html(`
+      <div class="text-center p-4">
+        <div class="spinner-border text-primary" role="status"></div>
+        <br><small class="text-muted">Memuat data absensi...</small>
+      </div>
+    `);
+
+    $.get("{{ url_for('staf_absen.data_absen_siswa') }}?tanggal=" + tanggal + "&kelas=" + kelas, function (html) {
+      $("#absenContainer").hide().html(html).fadeIn(250);
+    });
+  });
+
+  // ============ Koreksi Terlambat ============
+  $("#btnKoreksiTerlambat").on("click", function () {
+    const tanggal = $("#tanggal").val();
+    if (!tanggal) return Swal.fire({ icon: "warning", title: "Pilih tanggal terlebih dahulu!" });
+
+    fetch("/staf/absen/koreksi_terlambat", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "tanggal=" + tanggal
+    })
+    .then(res => res.json())
+    .then(data => {
+      Swal.fire({
+        icon: data.success ? "success" : "info",
+        title: data.success ? "Berhasil" : "Tidak Ada Data",
+        text: data.message
+      }).then(() => { if (data.success) $("#btnTampilkan").click(); });
+    })
+    .catch(err => Swal.fire({ icon: "error", title: "Error", text: "Terjadi kesalahan: " + err }));
+  });
+
+  // ============ Tutup Absen ============
+  $("#btnTutupAbsen").on("click", function () {
+    const tanggal = $("#tanggal").val();
+    if (!tanggal) return Swal.fire({ icon: "warning", title: "Pilih tanggal terlebih dahulu!" });
+
+    Swal.fire({
+      title: "Yakin ingin menutup absen?",
+      text: "Setelah ditutup, absensi hari ini akan dikunci.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Ya, Tutup Sekarang",
+      cancelButtonText: "Batal",
+      confirmButtonColor: "#d33",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        fetch("/staf/absen/tutup_absen", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: "tanggal=" + tanggal
+        })
+        .then(res => res.json())
+        .then(data => {
+          Swal.fire({
+            icon: data.success ? "success" : "error",
+            title: data.success ? "Berhasil" : "Gagal",
+            text: data.message
+          }).then(() => { if (data.success) $("#btnTampilkan").click(); });
+        })
+        .catch(err => Swal.fire({ icon: "error", title: "Error", text: "Terjadi kesalahan: " + err }));
+      }
+    });
+  });
+
+  // ============ EDIT ABSEN ============
+  $(document).on("click", ".btnEdit", function () {
+    const id = $(this).data("id");
+    const nama = $(this).data("nama");
+    const status = $(this).data("status");
+    const jamMasuk = $(this).data("jammasuk") === '-' ? '' : $(this).data("jammasuk").slice(0,5);
+    const jamPulang = $(this).data("jampulang") === '-' ? '' : $(this).data("jampulang").slice(0,5);
+    const ket = $(this).data("ket");
+
+    $("#editId").val(id);
+    $("#editNama").val(nama);
+    $("#editStatus").val(status);
+    $("#editJamMasuk").val(jamMasuk);
+    $("#editJamPulang").val(jamPulang);
+    $("#editKeterangan").val(ket);
+    $("#modalEditAbsen").modal("show");
+  });
+
+  $(document).on("click", "#btnSimpanEdit", function () {
+    const id = $("#editId").val();
+    const status = $("#editStatus").val();
+    const jam_masuk = $("#editJamMasuk").val();
+    const jam_pulang = $("#editJamPulang").val();
+    const keterangan = $("#editKeterangan").val();
+    const nama = $("#editNama").val();
+    const nis = $("#formEditAbsen").data("nis");
+    const kelas = $("#formEditAbsen").data("kelas");
+
+    $.post("{{ url_for('staf_absen.update_absen') }}", 
+      { id, nis, nama, kelas, status, jam_masuk, jam_pulang, keterangan },
+      function (resp) {
+        Swal.fire({ icon: "success", title: "Berhasil", text: resp.message || "Perubahan absensi disimpan.", timer: 2000, showConfirmButton: false });
+        $("#modalEditAbsen").modal("hide");
+        $("#btnTampilkan").click();
+      }
+    ).fail(function (xhr) {
+      Swal.fire({ icon: "error", title: "Gagal", text: xhr.responseJSON?.message || "Gagal menyimpan perubahan." });
+    });
+  });
+});
+</script>
+{% endblock %}

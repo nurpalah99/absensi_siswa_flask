@@ -1,0 +1,213 @@
+{% extends "admin/base_admin.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4>⚙️ Pengaturan Akun</h4>
+
+  <!-- 🔐 Notifikasi hasil reset / generate password -->
+  {% if session.get('reset_list') %}
+  <div class="alert alert-info alert-dismissible fade show" role="alert">
+    <strong>🔁 Password Direset:</strong>
+    <ul class="mb-0">
+      {% for r in session['reset_list'] %}
+      <li>{{ r.nama }} ({{ r.username }}) → <code>{{ r.password }}</code></li>
+      {% endfor %}
+    </ul>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endif %}
+
+  {% if session.get('generated_passwords') %}
+  <div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <strong>🔐 Password Baru Semua User:</strong>
+    <ul class="mb-0">
+      {% for u in session['generated_passwords'] %}
+      <li>{{ u.nama }} ({{ u.username }}) → <code>{{ u.password }}</code></li>
+      {% endfor %}
+    </ul>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endif %}
+
+  <!-- Tombol Tambah, Reset Semua, dan Unduh Excel -->
+  <div class="d-flex mb-3 gap-2">
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalTambahUser">
+      ➕ Tambah Akun Baru
+    </button>
+
+    <a href="{{ url_for('admin.generate_passwords') }}" 
+       class="btn btn-danger btn-sm"
+       onclick="return confirm('Yakin ingin mereset semua password user non-admin?')">
+       🔐 Reset Semua Password
+    </a>
+
+    <a href="{{ url_for('admin.export_passwords_excel') }}" 
+       class="btn btn-success btn-sm"
+       onclick="return confirm('Unduh daftar password baru ke file Excel?')">
+       📥 Unduh Password Baru
+    </a>
+  </div>
+
+  <!-- TABEL USER -->
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>No</th>
+        <th>Nama</th>
+        <th>Username</th>
+        <th>NIP</th>
+        <th>Role</th>
+        <th>Wali Kelas</th>
+        <th>Status</th>
+        <th>Password</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in semua_user %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ u.nama }}</td>
+        <td>{{ u.username }}</td>
+        <td>{{ u.nip or '-' }}</td>
+        <td>{{ u.role|capitalize }}</td>
+        <td>{{ u.wali_kelas or '-' }}</td>
+        <td>
+          {% if u.status == 'aktif' %}
+          <span class="badge bg-success">Aktif</span>
+          {% else %}
+          <span class="badge bg-secondary">Nonaktif</span>
+          {% endif %}
+        </td>
+
+        <!-- ✅ Kolom Password -->
+        <td>
+          {% set reset_list = session.get('reset_list', []) %}
+          {% set gen_list = session.get('generated_passwords', []) %}
+          {% set pw = None %}
+
+          {% for r in reset_list %}
+            {% if r.username == u.username %}
+              {% set pw = r.password %}
+            {% endif %}
+          {% endfor %}
+
+          {% for g in gen_list %}
+            {% if g.username == u.username %}
+              {% set pw = g.password %}
+            {% endif %}
+          {% endfor %}
+
+          {% if pw %}
+            <code>{{ pw }}</code>
+          {% else %}
+            <span class="text-muted">-</span>
+          {% endif %}
+        </td>
+
+        <td>
+          <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editUserModal{{u.id}}">✏️ Edit</button>
+          <a href="{{ url_for('admin.reset_password_user', user_id=u.id) }}" class="btn btn-info btn-sm"
+             onclick="return confirm('Reset password {{u.nama}} menjadi password baru acak?')">🔁 Reset</a>
+          <a href="{{ url_for('admin.hapus_user', user_id=u.id) }}" class="btn btn-danger btn-sm"
+             onclick="return confirm('Hapus user {{u.nama}}?')">🗑️ Hapus</a>
+        </td>
+      </tr>
+
+      <!-- Modal Edit User -->
+      <form method="POST" action="{{ url_for('admin.edit_user', user_id=u.id) }}">
+        <div class="modal fade" id="editUserModal{{u.id}}" tabindex="-1" aria-labelledby="editUserModalLabel{{u.id}}" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">✏️ Edit Akun {{u.nama}}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <label>Nama Lengkap</label>
+                <input type="text" class="form-control mb-2" name="nama" value="{{u.nama}}" required>
+                <label>Username</label>
+                <input type="text" class="form-control mb-2" name="username" value="{{u.username}}" required>
+                <label>Role</label>
+                <select class="form-select mb-2" name="role">
+                  {% for r in ['staf','guru','guru_bk','wakasek','kepala_sekolah','admin'] %}
+                  <option value="{{r}}" {% if u.role == r %}selected{% endif %}>{{ r|capitalize }}</option>
+                  {% endfor %}
+                </select>
+                <label>Status</label>
+                <select class="form-select mb-2" name="status">
+                  <option value="aktif" {% if u.status == 'aktif' %}selected{% endif %}>Aktif</option>
+                  <option value="nonaktif" {% if u.status == 'nonaktif' %}selected{% endif %}>Nonaktif</option>
+                </select>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-success">Simpan Perubahan</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal Tambah User -->
+<form method="POST" action="{{ url_for('admin.tambah_user') }}">
+  <div class="modal fade" id="modalTambahUser" tabindex="-1" aria-labelledby="modalTambahUserLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalTambahUserLabel">➕ Tambah Akun Baru</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label>Nama Lengkap</label>
+          <input type="text" class="form-control mb-2" name="nama" required>
+
+          <label>Username</label>
+          <input type="text" class="form-control mb-2" name="username" required>
+
+          <label>Password</label>
+          <input type="password" class="form-control mb-2" name="password" required>
+
+          <label>NIP</label>
+          <input type="text" class="form-control mb-2" name="nip">
+
+          <label>Role</label>
+          <select class="form-select mb-2" name="role">
+            <option value="staf">Staf TU</option>
+            <option value="guru">Guru / Wali Kelas</option>
+            <option value="guru_bk">Guru BK</option>
+            <option value="wakasek">Wakil Kepala Sekolah</option>
+            <option value="kepala_sekolah">Kepala Sekolah</option>
+            <option value="admin">Admin Sistem</option>
+          </select>
+
+          <label>Wali Kelas</label>
+          <input type="text" class="form-control mb-2" name="wali_kelas" placeholder="Contoh: X IPA 1">
+
+          <label>Status</label>
+          <select class="form-select mb-2" name="status">
+            <option value="aktif" selected>Aktif</option>
+            <option value="nonaktif">Nonaktif</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- 🧹 Bersihkan session setelah ditampilkan -->
+{% if session.get('reset_list') %}
+  {% set _ = session.pop('reset_list') %}
+{% endif %}
+{% if session.get('generated_passwords') %}
+  {% set _ = session.pop('generated_passwords') %}
+{% endif %}
+
+{% endblock %}

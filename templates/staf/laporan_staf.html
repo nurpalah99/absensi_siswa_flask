@@ -1,0 +1,71 @@
+{% extends 'staf/base_staf.html' %}
+{% block content %}
+<div class="container mt-4">
+
+  <h4 class="fw-bold mb-4 text-primary">
+    <i class="bi bi-bar-chart-line me-2"></i> Menu Laporan Absensi
+  </h4>
+
+  <div class="row g-4">
+
+    <!-- Laporan Harian -->
+    <div class="col-md-3">
+      <div class="card shadow-sm border-0 h-100 text-center">
+        <div class="card-body">
+          <i class="bi bi-calendar3 display-5 text-primary mb-3"></i>
+          <h6 class="fw-bold">Laporan Harian</h6>
+          <p class="small text-muted">Rekap kehadiran seluruh siswa dalam satu hari.</p>
+          <a href="{{ url_for('staf_laporan_harian.laporan_harian') }}" class="btn btn-sm btn-primary">
+            <i class="bi bi-arrow-right-circle"></i> Buka
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Laporan Per Siswa -->
+    <div class="col-md-3">
+      <div class="card shadow-sm border-0 h-100 text-center">
+        <div class="card-body">
+          <i class="bi bi-person-lines-fill display-5 text-success mb-3"></i>
+          <h6 class="fw-bold">Laporan Per Siswa</h6>
+          <p class="small text-muted">Rekap absensi berdasarkan nama atau NIS siswa.</p>
+          <a href="{{ url_for('staf_laporan_siswa.laporan_per_siswa') }}" class="btn btn-sm btn-success">
+            <i class="bi bi-arrow-right-circle"></i> Buka
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Laporan Per Kelas -->
+    <div class="col-md-3">
+      <div class="card shadow-sm border-0 h-100 text-center">
+        <div class="card-body">
+          <i class="bi bi-people-fill display-5 text-warning mb-3"></i>
+          <h6 class="fw-bold">Laporan Per Kelas</h6>
+          <p class="small text-muted">Rekap kehadiran seluruh siswa dalam satu kelas.</p>
+          <a href="{{ url_for('staf_laporan_kelas.laporan_per_kelas') }}" class="btn btn-sm btn-warning text-white">
+            <i class="bi bi-arrow-right-circle"></i> Buka
+          </a>
+            <i class="bi bi-arrow-right-circle"></i> Buka
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Laporan Semua Kelas -->
+    <div class="col-md-3">
+      <div class="card shadow-sm border-0 h-100 text-center">
+        <div class="card-body">
+          <i class="bi bi-building display-5 text-danger mb-3"></i>
+          <h6 class="fw-bold">Laporan Semua Kelas</h6>
+          <p class="small text-muted">Rekap global absensi seluruh siswa di sekolah.</p>
+          <a href="{{ url_for('staf_laporan_semua.laporan_semua') }}" class="btn btn-sm btn-danger">
+            <i class="bi bi-arrow-right-circle"></i> Buka
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

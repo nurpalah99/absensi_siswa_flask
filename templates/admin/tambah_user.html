@@ -1,0 +1,48 @@
+{% extends "admin/base_admin.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4>Tambah User Baru</h4>
+  <form method="POST" action="{{ url_for('admin.tambah_user') }}">
+    <div class="mb-3">
+      <label>Nama Lengkap</label>
+      <input type="text" class="form-control" name="nama" required>
+    </div>
+    <div class="mb-3">
+      <label>Username</label>
+      <input type="text" class="form-control" name="username" required>
+    </div>
+    <div class="mb-3">
+      <label>Password</label>
+      <input type="password" class="form-control" name="password" required>
+    </div>
+    <div class="mb-3">
+      <label>NIP</label>
+      <input type="text" class="form-control" name="nip">
+    </div>
+    <div class="mb-3">
+      <label>Role</label>
+      <select class="form-select" name="role">
+        <option value="staf">Staf</option>
+        <option value="guru">Guru / Wali Kelas</option>
+        <option value="guru_bk">Guru BK</option>
+        <option value="wakasek">Wakil Kepala Sekolah</option>
+        <option value="kepala_sekolah">Kepala Sekolah</option>
+        <option value="admin">Admin Sistem</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label>Wali Kelas</label>
+      <input type="text" class="form-control" name="wali_kelas" placeholder="Contoh: X ANM atau XI DKV 1">
+    </div>
+    <div class="mb-3">
+      <label>Status</label>
+      <select class="form-select" name="status">
+        <option value="aktif" selected>Aktif</option>
+        <option value="nonaktif">Nonaktif</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-success">Simpan</button>
+    <a href="{{ url_for('admin.data_user') }}" class="btn btn-secondary">Kembali</a>
+  </form>
+</div>
+{% endblock %}

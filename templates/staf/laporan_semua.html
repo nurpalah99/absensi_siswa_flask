@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% block content %}
+
+
+
+<div class="container mt-4">
+  <h3>🏫 Rekap Absensi Seluruh Kelas</h3>
+
+  <!-- Filter form -->
+  <div class="col-md-4">
+	  <label class="form-label">Pilih Jenjang</label>
+	  <select name="jenjang" class="form-select">
+		<option value="">Semua</option>
+		<option value="X" {% if request.form.get('jenjang') == 'X' %}selected{% endif %}>X</option>
+		<option value="XI" {% if request.form.get('jenjang') == 'XI' %}selected{% endif %}>XI</option>
+		<option value="XII" {% if request.form.get('jenjang') == 'XII' %}selected{% endif %}>XII</option>
+	   </select>
+	</div>
+
+  
+  
+  <form method="POST" class="row g-3 mb-4 mt-2">
+    <div class="col-md-4">
+      <label class="form-label">Tanggal Awal</label>
+      <input type="date" name="tgl_awal" class="form-control" value="{{ tgl_awal }}">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Tanggal Akhir</label>
+      <input type="date" name="tgl_akhir" class="form-control" value="{{ tgl_akhir }}">
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+      <button class="btn btn-primary w-100" type="submit">Tampilkan</button>
+    </div>
+  </form>
+
+  {% if data_rekap %}
+  <!-- Chart Section -->
+  <div class="row mb-4">
+    <div class="col-md-6">
+      <canvas id="pieChart"></canvas>
+    </div>
+    <div class="col-md-6">
+      <canvas id="barChart"></canvas>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <a href="{{ url_for('staf.export_laporan_semua_pdf', tgl_awal=tgl_awal, tgl_akhir=tgl_akhir) }}" class="btn btn-danger">
+      🖨 Cetak PDF
+    </a>
+    <a href="{{ url_for('staf.export_laporan_semua_excel', tgl_awal=tgl_awal, tgl_akhir=tgl_akhir) }}" class="btn btn-success">
+      ⬇️ Ekspor Excel
+    </a>
+  </div>
+
+  <!-- Table Section -->
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped">
+      <thead class="table-dark">
+        <tr>
+          <th>Kelas</th>
+          <th>Hadir</th>
+          <th>Terlambat</th>
+          <th>Izin</th>
+          <th>Sakit</th>
+		  <th>Alpa</th>
+          <th>Bolos</th>
+          <th>Total Absen</th>
+          <th>Jumlah Siswa Aktif</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in data_rekap %}
+        <tr>
+          <td>{{ d.kelas }}</td>
+          <td>{{ d.hadir }}</td>
+          <td>{{ d.terlambat }}</td>
+          <td>{{ d.izin }}</td>
+          <td>{{ d.sakit }}</td>
+		  <td>{{ d.alpa }}</td>
+          <td>{{ d.bolos }}</td>
+          <td><strong>{{ d.total }}</strong></td>
+          <td>{{ d.jumlah_siswa }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted">Silakan pilih rentang tanggal untuk melihat rekap semua kelas.</p>
+  {% endif %}
+</div>
+
+<!-- Load Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+{% if data_rekap %}
+const ctxPie = document.getElementById('pieChart').getContext('2d');
+new Chart(ctxPie, {
+  type: 'pie',
+  data: {
+    labels: ['Hadir', 'Terlambat', 'Izin', 'Sakit', 'Bolos'],
+    datasets: [{
+      label: 'Total Absensi Sekolah',
+      data: [
+        {{ total_semua.hadir }},
+        {{ total_semua.terlambat }},
+        {{ total_semua.izin }},
+        {{ total_semua.sakit }},
+        {{ total_semua.alpa }},
+		{{ total_semua.bolos }}
+      ],
+      backgroundColor: ['#28a745', '#ffc107', '#17a2b8', '#6c757d', '#dc3545']
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom' },
+      title: { display: true, text: 'Persentase Kehadiran Sekolah' }
+    }
+  }
+});
+
+const ctxBar = document.getElementById('barChart').getContext('2d');
+new Chart(ctxBar, {
+  type: 'bar',
+  data: {
+    labels: [{% for d in data_rekap %}'{{ d.kelas }}',{% endfor %}],
+    datasets: [
+      {
+        label: 'Hadir',
+        data: [{% for d in data_rekap %}{{ d.hadir }},{% endfor %}],
+        backgroundColor: '#28a745'
+      },
+      {
+        label: 'Terlambat',
+        data: [{% for d in data_rekap %}{{ d.terlambat }},{% endfor %}],
+        backgroundColor: '#ffc107'
+      },
+      {
+        label: 'Izin',
+        data: [{% for d in data_rekap %}{{ d.izin }},{% endfor %}],
+        backgroundColor: '#17a2b8'
+      },
+      {
+        label: 'Sakit',
+        data: [{% for d in data_rekap %}{{ d.sakit }},{% endfor %}],
+        backgroundColor: '#6c757d'
+      },
+	  {
+        label: 'Alpa',
+        data: [{% for d in data_rekap %}{{ d.alpa }},{% endfor %}],
+        backgroundColor: '#dc3545'
+      },
+      {
+        label: 'Bolos',
+        data: [{% for d in data_rekap %}{{ d.bolos }},{% endfor %}],
+        backgroundColor: '#dc3545'
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { position: 'bottom' },
+      title: { display: true, text: 'Kehadiran Per Kelas' }
+    },
+    scales: { y: { beginAtZero: true } }
+  }
+});
+{% endif %}
+</script>
+{% endblock %}

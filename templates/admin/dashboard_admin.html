@@ -1,0 +1,53 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Dashboard Admin{% endblock %}
+{% block content %}
+
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>📊 Dashboard Admin</h3>
+    <div>
+      <span class="me-3">👤 {{ nama }}</span>
+      <a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">🚪 Logout</a>
+    </div>
+  </div>
+
+  <div class="card p-4 shadow-sm">
+    <h5 class="mb-3">Menu Utama</h5>
+
+    <div class="list-group">
+      <!-- 1. Data Siswa -->
+      <a href="{{ url_for('admin.data_siswa') }}" class="list-group-item list-group-item-action">
+        👨‍🎓 Data Siswa
+      </a>
+
+      <!-- 2. Laporan -->
+      <a href="{{ url_for('admin.laporan_absensi') }}" class="list-group-item list-group-item-action">
+        📅 Laporan Absensi
+      </a>
+
+      <!-- 3. Pengaturan Akun -->
+      <a href="{{ url_for('admin.pengaturan_akun') }}" class="list-group-item list-group-item-action">
+        🔐 Pengaturan Akun
+      </a>
+
+      <!-- 4. Pengaturan Umum -->
+      <a href="{{ url_for('admin.pengaturan_umum') }}" class="list-group-item list-group-item-action">
+        ⏰ Pengaturan Umum
+      </a>
+	  <hr class="my-4">
+	  <a href="{{ url_for('admin.reset_data') }}" 
+		   class="btn btn-outline-danger w-100"
+		   onclick="return confirm('Yakin ingin menghapus semua data absensi dan pengaturan?')">
+		  🗑️ Reset Data Percobaan
+	   </a>
+
+    </div>
+  </div>
+
+  <div class="mt-4 text-muted small">
+    <p>Tanggal hari ini: <strong>{{ tanggal_hari_ini }}</strong></p>
+    <p>Total Siswa: <strong>{{ total_siswa }}</strong> | Total User: <strong>{{ total_user }}</strong></p>
+  </div>
+</div>
+
+{% endblock %}

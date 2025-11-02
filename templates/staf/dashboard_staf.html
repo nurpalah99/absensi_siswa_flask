@@ -1,0 +1,252 @@
+{% extends "staf/base_staf.html" %}
+{% block title %}Dashboard Staf | Sistem Absensi{% endblock %}
+{% block header %}Dashboard Kehadiran Hari Ini{% endblock %}
+
+{% block content %}
+<style>
+  /* ==============================
+     STYLE DASHBOARD STAF
+     ============================== */
+  .info-box {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    padding: 20px 25px;
+    margin-bottom: 1.5rem;
+  }
+
+  .info-box h5 {
+    font-weight: 600;
+    color: #0d6efd;
+    margin-bottom: 0.5rem;
+  }
+
+  .counter-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  .counter-card {
+    flex: 1 1 140px;
+    min-width: 130px;
+    background: #f9fbff;
+    border-radius: 10px;
+    padding: 1rem;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    transition: transform 0.15s ease;
+  }
+
+  .counter-card:hover {
+    transform: scale(1.05);
+  }
+
+  .counter-card h4 {
+    font-size: 1.9rem;
+    margin: 0;
+    font-weight: 700;
+  }
+
+  .counter-card small {
+    color: #666;
+    font-weight: 500;
+  }
+
+  .text-hadir { color: #0d6efd; }
+  .text-terlambat { color: #ffc107; }
+  .text-izin { color: #17a2b8; }
+  .text-sakit { color: #28a745; }
+  .text-alpa { color: #dc3545; }
+  .text-pulang { color: #6c757d; }
+
+  .recent-list {
+    max-height: 320px;
+    overflow-y: auto;
+    border-radius: 10px;
+  }
+
+  /* Scrollbar lembut */
+  .recent-list::-webkit-scrollbar {
+    width: 6px;
+  }
+  .recent-list::-webkit-scrollbar-thumb {
+    background-color: #d0d6db;
+    border-radius: 3px;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 2rem 0;
+    color: #999;
+    font-size: 0.9rem;
+  }
+
+  /* 🌐 Realtime status bar */
+  #realtime-status {
+    background: #e8f2ff;
+    border: 1px solid #d0e1ff;
+    padding: 6px 0;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    text-align: center;
+    font-size: 0.9rem;
+    color: #444;
+    margin-bottom: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .counter-card h4 { font-size: 1.5rem; }
+  }
+</style>
+
+<!-- 🔹 STATUS REAL-TIME -->
+<div id="realtime-status">
+  📡 <span id="realtime-text">Menunggu pembaruan data...</span>
+</div>
+
+<!-- 🔹 INFORMASI JAM MASUK / PULANG -->
+<div class="info-box">
+  <h5>🕒 Jadwal Hari Ini</h5>
+  <p class="mb-0">
+    Jam Masuk: <strong id="jamMasuk" class="text-primary">--:--</strong> &nbsp; | &nbsp;
+    Jam Pulang: <strong id="jamPulang" class="text-success">--:--</strong>
+  </p>
+  <p class="text-muted small mt-1">
+    <i class="bi bi-info-circle"></i> Data otomatis mengikuti pengaturan sekolah.
+  </p>
+</div>
+
+<!-- 🔹 COUNTER STATUS ABSENSI -->
+<div class="info-box">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5 class="mb-0">📊 Status Absensi Hari Ini</h5>
+    <button class="btn btn-sm btn-outline-primary" onclick="updateDashboard(); updateRecentAbsen();">
+      <i class="bi bi-arrow-clockwise"></i> Perbarui
+    </button>
+  </div>
+  <div class="counter-container">
+    <div class="counter-card text-hadir">
+      <h4 id="count-hadir">0</h4><small>Hadir</small>
+    </div>
+    <div class="counter-card text-terlambat">
+      <h4 id="count-terlambat">0</h4><small>Terlambat</small>
+    </div>
+    <div class="counter-card text-izin">
+      <h4 id="count-izin">0</h4><small>Izin</small>
+    </div>
+    <div class="counter-card text-sakit">
+      <h4 id="count-sakit">0</h4><small>Sakit</small>
+    </div>
+    <div class="counter-card text-alpa">
+      <h4 id="count-alpa">0</h4><small>Alpa</small>
+    </div>
+    <div class="counter-card text-pulang">
+      <h4 id="count-pulang">0</h4><small>Pulang</small>
+    </div>
+  </div>
+</div>
+
+<!-- 🔹 DAFTAR ABSEN TERBARU -->
+<div class="info-box">
+  <h5>🧾 Daftar Absensi Terbaru</h5>
+  <ul id="recent-absen" class="list-group recent-list text-start">
+    <li class="list-group-item text-muted text-center loading">
+      <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+      Memuat data absensi...
+    </li>
+  </ul>
+</div>
+
+<script>
+let lastTrigger = null;
+
+// 🔄 Cek trigger file untuk pembaruan otomatis
+async function checkTrigger() {
+  try {
+    const res = await fetch('/static/trigger_absen.txt?' + Date.now());
+    const text = await res.text();
+    if (lastTrigger && lastTrigger !== text) {
+      await updateDashboard();
+      await updateRecentAbsen();
+
+      // 🔹 Update indikator status
+      const newTime = new Date(text).toLocaleTimeString('id-ID', { hour12: false });
+      document.getElementById('realtime-text').textContent = `Data diperbarui: ${newTime}`;
+    }
+    lastTrigger = text;
+  } catch (e) {
+    console.error("Gagal cek trigger:", e);
+    document.getElementById('realtime-text').textContent = "⚠️ Gagal memeriksa status data.";
+  }
+}
+
+// 📊 Update data ringkasan dashboard
+async function updateDashboard() {
+  try {
+    const res = await fetch('/staf/api/status-summary');
+    const data = await res.json();
+
+    document.getElementById("jamMasuk").textContent = data.jam_masuk || "--:--";
+    document.getElementById("jamPulang").textContent = data.jam_pulang || "--:--";
+
+    const mapping = {
+      "Hadir": "count-hadir",
+      "Terlambat": "count-terlambat",
+      "Izin": "count-izin",
+      "Sakit": "count-sakit",
+      "Alpa": "count-alpa",
+      "Pulang": "count-pulang"
+    };
+
+    Object.entries(mapping).forEach(([key, id]) => {
+      document.getElementById(id).textContent = data[key] || 0;
+    });
+  } catch (err) {
+    console.warn("⚠️ Gagal update dashboard:", err);
+  }
+}
+
+// 🧾 Update daftar absensi terbaru
+async function updateRecentAbsen() {
+  try {
+    const res = await fetch('/staf/api/recent-absen');
+    const data = await res.json();
+    const list = document.getElementById("recent-absen");
+    list.innerHTML = "";
+
+    if (!data.length) {
+      list.innerHTML = `<li class="list-group-item text-center text-muted">Belum ada absensi hari ini.</li>`;
+      return;
+    }
+
+    data.forEach(item => {
+      const li = document.createElement("li");
+      li.className = "list-group-item d-flex justify-content-between align-items-center";
+      li.innerHTML = `
+        <div>
+          <strong>${item.nama}</strong> <br>
+          <small class="text-muted">${item.kelas} • ${item.waktu}</small>
+        </div>
+        <span class="badge rounded-pill ${
+          item.status === 'Hadir' ? 'bg-primary' :
+          item.status === 'Terlambat' ? 'bg-warning text-dark' :
+          item.status === 'Izin' ? 'bg-info text-dark' :
+          item.status === 'Sakit' ? 'bg-success' :
+          item.status === 'Alpa' ? 'bg-danger' : 'bg-secondary'
+        }">${item.status}</span>
+      `;
+      list.appendChild(li);
+    });
+  } catch (err) {
+    console.warn("⚠️ Gagal update recent absen:", err);
+  }
+}
+
+// Jalankan pertama kali
+updateDashboard();
+updateRecentAbsen();
+setInterval(checkTrigger, 10000);
+</script>
+{% endblock %}

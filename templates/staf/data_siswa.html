@@ -1,0 +1,131 @@
+{% extends 'staf/base_staf.html' %}
+{% block title %}Kelola Data Siswa{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="bi bi-people-fill"></i> Kelola Data Siswa</h4>
+    <div>
+      <a href="{{ url_for('staf_siswa.tambah_siswa') }}" class="btn btn-success btn-sm">
+        <i class="bi bi-person-plus"></i> Tambah
+      </a>
+      <a href="{{ url_for('staf_siswa.ekspor_siswa_excel') }}" class="btn btn-primary btn-sm">
+        <i class="bi bi-file-earmark-spreadsheet"></i> Ekspor Excel
+      </a>
+      <button class="btn btn-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalImport">
+        <i class="bi bi-upload"></i> Impor Excel
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter -->
+  <form id="formFilter" class="row g-2 mb-3">
+    <div class="col-md-3">
+      <input type="text" name="cari" class="form-control" placeholder="Cari nama..." value="{{ cari_nama }}">
+    </div>
+    <div class="col-md-3">
+      <select name="kelas" class="form-select">
+        <option value="">Semua Kelas</option>
+        {% for k in semua_kelas %}
+          <option value="{{ k|trim|replace('\xa0',' ') }}" {% if kelas_filter == k %}selected{% endif %}>{{ k|trim }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select name="status" class="form-select">
+        <option value="">Semua Status</option>
+        <option value="Aktif" {% if status_filter|lower == 'aktif' %}selected{% endif %}>Aktif</option>
+        <option value="Nonaktif" {% if status_filter|lower == 'nonaktif' %}selected{% endif %}>Nonaktif</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <button type="button" id="btnFilterManual" class="btn btn-outline-primary w-100">
+        <i class="bi bi-search"></i> Tampilkan
+      </button>
+    </div>
+  </form>
+
+  <!-- Tabel Data -->
+  <div id="tableContainer">
+    {% include 'staf/_tabel_siswa.html' %}
+  </div>
+</div>
+
+<!-- ==================== MODAL IMPOR ==================== -->
+<div class="modal fade" id="modalImport" tabindex="-1" aria-labelledby="modalImportLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form method="post" action="{{ url_for('staf_siswa.impor_siswa_excel') }}" enctype="multipart/form-data" class="modal-content">
+      <div class="modal-header bg-secondary text-white">
+        <h5 class="modal-title" id="modalImportLabel">Impor Data Siswa</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Pastikan format file Excel sesuai:</p>
+        <ul>
+          <li>NIS</li>
+          <li>Nama</li>
+          <li>Kelas</li>
+          <li>Status (Aktif/Nonaktif)</li>
+        </ul>
+        <input type="file" name="file" accept=".xlsx,.xls" class="form-control" required>
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> Impor</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  if (typeof $ === "undefined") {
+    console.warn("⚠️ jQuery belum siap, menunggu load...");
+    return;
+  }
+
+  $(function () {
+    console.log("✅ jQuery siap — inisialisasi filter siswa...");
+
+    function loadFilteredData() {
+      const cari = $("input[name='cari']").val();
+      const kelas = $("select[name='kelas']").val();
+      const status = $("select[name='status']").val();
+
+      $.ajax({
+        url: "{{ url_for('staf_siswa.daftar_siswa') }}",
+        type: "GET",
+        data: { cari: cari, kelas: kelas, status: status },
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+        beforeSend: function () {
+          $("#tableContainer").html(`
+            <div class="text-center p-4">
+              <div class="spinner-border text-primary" role="status"></div>
+              <br><small class="text-muted">Memuat data...</small>
+            </div>
+          `);
+        },
+        success: function (html) {
+          $("#tableContainer").hide().html(html).fadeIn(200);
+        },
+        error: function () {
+          $("#tableContainer").html("<p class='text-danger text-center p-3'>Gagal memuat data.</p>");
+        }
+      });
+    }
+
+    $("input[name='cari']").on("input", function () {
+      clearTimeout($(this).data("timer"));
+      const timer = setTimeout(loadFilteredData, 300);
+      $(this).data("timer", timer);
+    });
+
+    $("select[name='kelas'], select[name='status']").on("change", loadFilteredData);
+    $("#btnFilterManual").on("click", loadFilteredData);
+  });
+});
+</script>
+{% endblock %}

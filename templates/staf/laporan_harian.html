@@ -1,0 +1,101 @@
+{% extends 'staf/base_staf.html' %}
+{% block header %}
+<i class="bi bi-calendar3"></i> Laporan Absensi Siswa
+{% endblock %}
+{% block content %}
+
+<div class="container-fluid mt-3">
+
+  <!-- Filter Tanggal / Periode -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+      <form method="POST" class="d-flex flex-wrap align-items-center justify-content-center gap-2">
+        <label class="fw-semibold text-secondary mb-0">Dari:</label>
+        <input type="date" name="tanggal_mulai" value="{{ tanggal_mulai }}" class="form-control form-control-sm" style="width: 180px;">
+
+        <label class="fw-semibold text-secondary mb-0">Sampai:</label>
+        <input type="date" name="tanggal_selesai" value="{{ tanggal_selesai }}" class="form-control form-control-sm" style="width: 180px;">
+
+        <button type="submit" class="btn btn-primary btn-sm shadow-sm">
+          <i class="bi bi-search"></i> Tampilkan
+        </button>
+      </form>
+    </div>
+  </div>
+
+  {% if total_siswa == 0 %}
+    <div class="alert alert-warning text-center shadow-sm">
+      <i class="bi bi-info-circle"></i> Belum ada data absensi untuk periode ini.
+    </div>
+  {% else %}
+
+  <!-- Tombol Ekspor -->
+  <div class="d-flex justify-content-end mb-3 flex-wrap gap-2">
+    <a href="/staf_laporan_export/download?format=pdf&mulai={{ tanggal_mulai }}&selesai={{ tanggal_selesai }}"
+       class="btn btn-danger btn-sm shadow-sm">
+      <i class="bi bi-file-earmark-pdf-fill"></i> Ekspor PDF
+    </a>
+    <a href="/staf_laporan_export/download?format=excel&mulai={{ tanggal_mulai }}&selesai={{ tanggal_selesai }}"
+       class="btn btn-success btn-sm shadow-sm">
+      <i class="bi bi-file-earmark-excel-fill"></i> Ekspor Excel
+    </a>
+  </div>
+
+  <!-- Tabel Rekapan -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-primary text-white fw-semibold text-center">
+      Rekapan Kehadiran Siswa
+      {% if tanggal_mulai == tanggal_selesai %}
+        — {{ tanggal_mulai }}
+      {% else %}
+        — Periode {{ tanggal_mulai }} s.d. {{ tanggal_selesai }}
+      {% endif %}
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-striped table-hover mb-0 text-center align-middle">
+          <thead class="table-primary">
+            <tr>
+              <th style="width:60px;">No</th>
+              <th>Status Kehadiran</th>
+              <th>Jumlah Siswa</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% set no = 1 %}
+            {% for status, jumlah in rekap.items() %}
+            <tr>
+              <td>{{ no }}</td>
+              <td>{{ status }}</td>
+              <td class="fw-semibold">{{ jumlah }}</td>
+            </tr>
+            {% set no = no + 1 %}
+            {% endfor %}
+            <tr class="fw-bold table-light">
+              <td colspan="2">TOTAL SISWA</td>
+              <td>{{ total_siswa }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tanda Tangan -->
+  <div class="row mt-5">
+    <div class="col text-center">
+      <p>Mengetahui,</p>
+      <p><strong>Kepala Sekolah</strong></p><br><br>
+      <p><u>{{ kepala_nama }}</u><br>NIP. {{ kepala_nip }}</p>
+    </div>
+    <div class="col text-center">
+      <p>Tangerang, {{ tanggal_selesai }}</p>
+      <p><strong>Disusun oleh,</strong></p><br><br>
+      <p><u>{{ operator_nama }}</u><br>NIP. {{ operator_nip }}</p>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+
+{% endblock %}

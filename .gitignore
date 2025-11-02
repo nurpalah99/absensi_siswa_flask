@@ -1,0 +1,23 @@
+# Python cache
+__pycache__/
+*.pyc
+
+# Database & logs
+database/*.db
+logs/
+*.log
+
+# Sessions & uploads
+flask_session/
+uploads/
+static/upload/
+*.pem
+
+# Backup & local config
+*.bak
+*.old
+*.txt
+.env
+instance/
+cleanup_unused/
+Tree.txt

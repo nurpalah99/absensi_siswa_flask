@@ -1,0 +1,58 @@
+{% extends "staf/base_staf.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h3 class="mb-4">⚙️ Pengaturan Umum</h3>
+
+    <form method="POST" action="{{ url_for('staf_pengaturan.simpan_pengaturan') }}" class="card p-4 shadow-sm">
+        <h5>Jam Sekolah</h5>
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label>Jam Masuk</label>
+                <input type="time" name="jam_masuk" class="form-control" value="{{ pengaturan.jam_masuk if pengaturan else '' }}">
+            </div>
+            <div class="col-md-4">
+                <label>Jam Pulang</label>
+                <input type="time" name="jam_pulang" class="form-control" value="{{ pengaturan.jam_pulang if pengaturan else '' }}">
+            </div>
+            <div class="col-md-4">
+                <label>Tutup Absen</label>
+                <input type="time" name="tutup_absen" class="form-control" value="{{ pengaturan.tutup_absen if pengaturan else '' }}">
+            </div>
+        </div>
+
+        <hr>
+        <h5>Kepala Sekolah</h5>
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label>Nama Kepala Sekolah</label>
+                <input type="text" name="nama_kepsek" class="form-control" value="{{ kepala.nama if kepala else '' }}">
+            </div>
+            <div class="col-md-6">
+                <label>NIP Kepala Sekolah</label>
+                <input type="text" name="nip_kepsek" class="form-control" value="{{ kepala.nip if kepala else '' }}">
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-2">💾 Simpan Pengaturan</button>
+    </form>
+
+    <form method="POST" action="{{ url_for('staf_pengaturan.pulang_massal') }}" class="card p-4 shadow-sm mt-4">
+        <h5>🚪 Pulang Massal</h5>
+        <div class="row">
+            <div class="col-md-8">
+                <input type="text" name="alasan" class="form-control" placeholder="Contoh: Rapat guru, bencana alam..." required>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-danger w-100">Proses Pulang Massal</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="card p-4 shadow-sm mt-4">
+        <h5>👤 Data Operator</h5>
+        <p><strong>Nama:</strong> {{ operator.nama or '-' }}</p>
+        <p><strong>NIP:</strong> {{ operator.nip or '-' }}</p>
+        <p><strong>Jabatan:</strong> {{ operator.jabatan or '-' }}</p>
+    </div>
+</div>
+{% endblock %}

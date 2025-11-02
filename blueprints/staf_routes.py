@@ -1,0 +1,314 @@
+# =====================================================
+# 🧩 BLUEPRINT: STAF ABSEN
+# =====================================================
+# File: blueprints/staf_absen.py
+# Fungsi utama: mengelola absensi siswa oleh staf
+# (kelola absen manual, tutup absen, pulang massal, dll)
+# =====================================================
+
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from datetime import datetime, timedelta
+from models.absensi import Absensi
+from models.siswa import Siswa
+from ext import db
+from blueprints.staf.staf_utils import require_staf, catat_aktivitas
+from .staf_laporan_main import staf_laporan_main
+app.register_blueprint(staf_laporan_main)
+from .staf_laporan_harian import staf_laporan_harian
+app.register_blueprint(staf_laporan_harian)
+
+
+# ✅ Tambahkan prefix '/staf' agar semua route jadi /staf/...
+staf_absen = Blueprint('staf_absen', __name__, url_prefix='/staf')
+
+# =====================================================
+# 📋 KELOLA ABSEN (UTAMA)
+# =====================================================
+@staf_absen.route('/kelola_absen', methods=['GET', 'POST'])
+@require_staf
+def kelola_absen():
+    """Menampilkan dan mengelola absensi siswa (edit manual)."""
+    tgl_str = request.values.get('tanggal') or datetime.now().strftime('%Y-%m-%d')
+    kelas_filter = request.values.get('kelas', '')
+
+    try:
+        tanggal = datetime.strptime(tgl_str, '%Y-%m-%d').date()
+    except Exception:
+        tanggal = datetime.now().date()
+        tgl_str = tanggal.strftime('%Y-%m-%d')
+
+    semua_kelas = [k[0] for k in db.session.query(Siswa.kelas).distinct().order_by(Siswa.kelas.asc())]
+
+    # 🔹 Ambil data absensi untuk kelas tertentu
+    def build_rows_for_kelas(kls):
+        siswa_list = Siswa.query.filter_by(kelas=kls, status='Aktif').order_by(Siswa.nama.asc()).all()
+        rows = []
+        for s in siswa_list:
+            recs = Absensi.query.filter_by(nis=s.nis, tanggal=tanggal).order_by(Absensi.waktu.asc()).all()
+            if recs:
+                last = recs[-1]
+                status = last.status or ''
+                keterangan = last.keterangan or ''
+                jam_masuk = recs[0].waktu.strftime("%H:%M") if recs[0].waktu else ''
+                jam_pulang = last.waktu.strftime("%H:%M") if last.waktu else ''
+            else:
+                status, keterangan, jam_masuk, jam_pulang = '', '', '', ''
+            rows.append({'siswa': s, 'status': status, 'keterangan': keterangan,
+                         'jam_masuk': jam_masuk, 'jam_pulang': jam_pulang})
+        return rows
+
+    data_rows = build_rows_for_kelas(kelas_filter) if kelas_filter else []
+
+    # 🔹 Simpan perubahan manual (edit individu)
+    if request.method == 'POST':
+        aksi = request.form.get('aksi', '')
+        if aksi == 'edit_individu':
+            nis = request.form.get('nis')
+            status_baru = request.form.get('status')
+            keterangan_baru = request.form.get('keterangan', '')
+            absen = Absensi.query.filter_by(nis=nis, tanggal=tanggal).first()
+            if not absen:
+                siswa = Siswa.query.filter_by(nis=nis).first()
+                absen = Absensi(nis=siswa.nis, nama=siswa.nama, kelas=siswa.kelas, tanggal=tanggal)
+                db.session.add(absen)
+            absen.status = status_baru
+            absen.keterangan = keterangan_baru
+            db.session.commit()
+            catat_aktivitas(session.get('nama'), f"Edit absensi {nis} pada {tanggal} (status: {status_baru})")
+            flash("Perubahan absensi berhasil disimpan.", "success")
+            return redirect(url_for('staf_absen.kelola_absen', tanggal=tgl_str, kelas=kelas_filter))
+
+    return render_template('staf/kelola_absen.html',
+                           daftar_kelas=semua_kelas,
+                           data_rows=data_rows,
+                           kelas_filter=kelas_filter,
+                           tgl_str=tgl_str,
+                           tanggal=tanggal)
+
+
+# =====================================================
+# 🔄 DATA ABSEN (AJAX)
+# =====================================================
+@staf_absen.route('/data_absen')
+@require_staf
+def data_absen():
+    """Endpoint AJAX untuk memuat tabel absensi berdasarkan tanggal & kelas."""
+    tgl_str = request.args.get('tanggal') or datetime.now().strftime('%Y-%m-%d')
+    kelas_filter = request.args.get('kelas', '')
+
+    try:
+        tanggal = datetime.strptime(tgl_str, '%Y-%m-%d').date()
+    except Exception:
+        tanggal = datetime.now().date()
+        tgl_str = tanggal.strftime('%Y-%m-%d')
+
+    query = Absensi.query.filter(Absensi.tanggal == tanggal)
+    if kelas_filter:
+        query = query.filter(Absensi.kelas == kelas_filter)
+
+    hasil_query = query.order_by(Absensi.waktu.asc()).all()
+
+    data = []
+    for a in hasil_query:
+        data.append({
+            "id": a.id,
+            "nama_siswa": a.nama,
+            "kelas": a.kelas,
+            "status": a.status or "-",
+            "jam_absen": a.waktu.strftime("%H:%M:%S") if a.waktu else "-"
+        })
+
+    print(f"[INFO] AJAX load absensi {tgl_str} kelas {kelas_filter} | total {len(data)}")
+    return render_template("staf/_tabel_absen.html", data=data)
+
+
+# =====================================================
+# 🔒 TUTUP ABSEN
+# =====================================================
+@staf_absen.route('/tutup_absen', methods=['POST'])
+@require_staf
+def tutup_absen():
+    """Menutup absensi hari ini dan menentukan status bolos/alpa."""
+    tanggal = request.form.get('tanggal') or datetime.now().strftime('%Y-%m-%d')
+    kelas = request.form.get('kelas', '')
+
+    siswa_list = Siswa.query.filter(Siswa.status == 'Aktif')
+    if kelas:
+        siswa_list = siswa_list.filter(Siswa.kelas == kelas)
+    siswa_list = siswa_list.all()
+
+    total_update = 0
+    for s in siswa_list:
+        absen_masuk = Absensi.query.filter_by(nis=s.nis, tanggal=tanggal, jenis_absen='Masuk').first()
+        absen_pulang = Absensi.query.filter_by(nis=s.nis, tanggal=tanggal, jenis_absen='Pulang').first()
+
+        if absen_masuk and not absen_pulang:
+            absen_masuk.status = 'Pulang Cepat'
+            absen_masuk.keterangan = 'Tidak absen pulang'
+            absen_masuk.is_locked = 1
+            total_update += 1
+        elif not absen_masuk and not absen_pulang:
+            baru = Absensi(
+                nis=s.nis, nama=s.nama, kelas=s.kelas,
+                tanggal=tanggal, jenis_absen='Masuk',
+                status='Alpa', waktu=None, is_locked=1,
+                keterangan='Tidak hadir sama sekali'
+            )
+            db.session.add(baru)
+            total_update += 1
+        elif absen_pulang and absen_masuk:
+            absen_masuk.is_locked = 1
+            absen_pulang.is_locked = 1
+
+    db.session.commit()
+    flash(f"Tutup absen {tanggal} selesai, {total_update} data diperbarui.", "success")
+    catat_aktivitas(session.get('nama'), f"Tutup absen tanggal {tanggal} kelas {kelas}")
+    return redirect(url_for('staf_absen.kelola_absen'))
+
+
+# =====================================================
+# 🕒 PULANG MASSAL
+# =====================================================
+@staf_absen.route('/pulang_massal', methods=['POST'])
+@require_staf
+def pulang_massal():
+    """Menandai semua siswa yang hadir pagi sebagai pulang massal."""
+    tanggal = request.form.get('tanggal') or datetime.now().strftime('%Y-%m-%d')
+    kelas = request.form.get('kelas', '')
+    jam_pulang = request.form.get('jam_pulang') or "12:00"
+
+    jam_pulang_full = datetime.strptime(f"{tanggal} {jam_pulang}", "%Y-%m-%d %H:%M")
+
+    siswa_list = Siswa.query.filter(Siswa.status == 'Aktif')
+    if kelas:
+        siswa_list = siswa_list.filter(Siswa.kelas == kelas)
+    siswa_list = siswa_list.all()
+
+    total_update = 0
+    for s in siswa_list:
+        absen_masuk = Absensi.query.filter_by(nis=s.nis, tanggal=tanggal, jenis_absen='Masuk').first()
+
+        if absen_masuk:
+            pulang = Absensi(
+                nis=s.nis, nama=s.nama, kelas=s.kelas,
+                tanggal=tanggal, waktu=jam_pulang_full,
+                jenis_absen='Pulang', status='Hadir',
+                keterangan='Pulang massal (rapat)',
+                is_locked=1
+            )
+            db.session.add(pulang)
+            total_update += 1
+        else:
+            baru = Absensi(
+                nis=s.nis, nama=s.nama, kelas=s.kelas,
+                tanggal=tanggal, jenis_absen='Masuk',
+                status='Alpa', waktu=None, keterangan='Tidak absen pagi',
+                is_locked=1
+            )
+            db.session.add(baru)
+            total_update += 1
+
+    db.session.commit()
+    flash(f"Pulang massal {tanggal} selesai, {total_update} data diperbarui.", "success")
+    catat_aktivitas(session.get('nama'), f"Pulang massal tanggal {tanggal} kelas {kelas}")
+    return redirect(url_for('staf_absen.kelola_absen'))
+
+
+# =====================================================
+# 🗑️ HAPUS ABSEN
+# =====================================================
+@staf_absen.route('/hapus_absen/<int:id_absen>', methods=['POST'])
+@require_staf
+def hapus_absen(id_absen):
+    """Menghapus data absensi berdasarkan ID."""
+    absen = Absensi.query.get(id_absen)
+    if not absen:
+        flash("Data absensi tidak ditemukan.", "warning")
+        return redirect(url_for('staf_absen.kelola_absen'))
+
+    try:
+        db.session.delete(absen)
+        db.session.commit()
+        catat_aktivitas(session.get('nama'), f"Hapus absensi {absen.nama} ({absen.kelas}) tanggal {absen.tanggal}")
+        flash(f"Data absensi {absen.nama} berhasil dihapus.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash("Terjadi kesalahan saat menghapus data.", "danger")
+        print(f"[ERROR] Gagal hapus absensi ID={id_absen}: {e}")
+
+    return redirect(url_for('staf_absen.kelola_absen', tanggal=absen.tanggal, kelas=absen.kelas))
+
+
+# =====================================================
+# ✏️ UPDATE ABSEN (EDIT MANUAL, SESUAI MODEL SEKARANG)
+# =====================================================
+@staf_absen.route('/update_absen', methods=['POST'])
+@require_staf
+def update_absen():
+    """Memperbarui data absensi siswa (edit manual oleh staf)."""
+    id_absen = request.form.get('id')
+    status = request.form.get('status')
+    jam_masuk = request.form.get('jam_masuk')
+    jam_pulang = request.form.get('jam_pulang')
+    keterangan = request.form.get('keterangan', '')
+
+    absen = Absensi.query.get(id_absen)
+    if not absen:
+        return {"message": "Data absensi tidak ditemukan."}, 404
+
+    if getattr(absen, "is_locked", 0) == 1:
+        return {"message": "Data absensi sudah terkunci dan tidak dapat diubah."}, 403
+
+    try:
+        tanggal = absen.tanggal
+        nis = absen.nis
+
+        # 🔹 Cari record masuk & pulang untuk siswa tersebut
+        absen_masuk = Absensi.query.filter_by(nis=nis, tanggal=tanggal, jenis_absen='Masuk').first()
+        absen_pulang = Absensi.query.filter_by(nis=nis, tanggal=tanggal, jenis_absen='Pulang').first()
+
+        # 🔸 Update jam masuk
+        if jam_masuk:
+            jam_masuk_dt = datetime.strptime(f"{tanggal} {jam_masuk}", "%Y-%m-%d %H:%M")
+            if absen_masuk:
+                absen_masuk.waktu = jam_masuk_dt
+            else:
+                absen_masuk = Absensi(nis=nis, nama=absen.nama, kelas=absen.kelas,
+                                      tanggal=tanggal, jenis_absen='Masuk',
+                                      waktu=jam_masuk_dt, status=status, keterangan=keterangan)
+                db.session.add(absen_masuk)
+
+        # 🔸 Update jam pulang
+        if jam_pulang:
+            jam_pulang_dt = datetime.strptime(f"{tanggal} {jam_pulang}", "%Y-%m-%d %H:%M")
+            if absen_pulang:
+                absen_pulang.waktu = jam_pulang_dt
+            else:
+                absen_pulang = Absensi(nis=nis, nama=absen.nama, kelas=absen.kelas,
+                                       tanggal=tanggal, jenis_absen='Pulang',
+                                       waktu=jam_pulang_dt, status=status, keterangan=keterangan)
+                db.session.add(absen_pulang)
+
+        # 🔸 Update status dan keterangan (umum)
+        absen.status = status
+        absen.keterangan = keterangan
+
+        db.session.commit()
+        catat_aktivitas(session.get('nama'), f"Edit absen {absen.nama} ({absen.kelas}) tanggal {tanggal}")
+        return {"message": "Data absensi berhasil diperbarui."}
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"[ERROR] update_absen gagal: {e}")
+        return {"message": "Gagal menyimpan perubahan."}, 500
+
+
+
+# =====================================================
+# 📷 SCAN QR
+# =====================================================
+@staf_absen.route('/scan_qr', methods=['GET'])
+@require_staf
+def scan_qr():
+    """Halaman untuk staf melakukan pemindaian QR siswa."""
+    return render_template('staf/scan_qr.html', nama=session.get('nama'))

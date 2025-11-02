@@ -1,0 +1,37 @@
+{% extends "admin/base_admin.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h4>Edit Data User</h4>
+  <form method="POST" action="{{ url_for('admin.edit_user', id=user.id) }}">
+    <div class="mb-3">
+      <label>Nama Lengkap</label>
+      <input type="text" class="form-control" name="nama" value="{{ user.nama }}" required>
+    </div>
+    <div class="mb-3">
+      <label>NIP</label>
+      <input type="text" class="form-control" name="nip" value="{{ user.nip }}">
+    </div>
+    <div class="mb-3">
+      <label>Role</label>
+      <select class="form-select" name="role">
+        {% for r in ['staf', 'guru', 'guru_bk', 'wakasek', 'kepala_sekolah', 'admin'] %}
+        <option value="{{ r }}" {% if user.role == r %}selected{% endif %}>{{ r|capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3">
+      <label>Wali Kelas</label>
+      <input type="text" class="form-control" name="wali_kelas" value="{{ user.wali_kelas }}">
+    </div>
+    <div class="mb-3">
+      <label>Status</label>
+      <select class="form-select" name="status">
+        <option value="aktif" {% if user.status == 'aktif' %}selected{% endif %}>Aktif</option>
+        <option value="nonaktif" {% if user.status == 'nonaktif' %}selected{% endif %}>Nonaktif</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-success">Simpan Perubahan</button>
+    <a href="{{ url_for('admin.data_user') }}" class="btn btn-secondary">Kembali</a>
+  </form>
+</div>
+{% endblock %}

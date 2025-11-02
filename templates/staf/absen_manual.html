@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h3>📋 Absensi Manual</h3>
+  <p class="text-muted">Gunakan fitur ini jika QR gagal terbaca atau siswa tidak bisa scan.</p>
+
+  <form method="POST" class="card p-3 shadow-sm">
+    <div class="mb-3">
+      <label for="nis" class="form-label">Pilih Siswa</label>
+      <select name="nis" id="nis" class="form-select" required>
+        <option value="">-- Pilih Siswa --</option>
+        {% for s in siswa_list %}
+        <option value="{{ s.nis }}">{{ s.nis }} - {{ s.nama }} ({{ s.kelas }})</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3">
+      <label for="status" class="form-label">Status Kehadiran</label>
+      <select name="status" id="status" class="form-select" required>
+        <option value="Hadir">Hadir</option>
+        <option value="Terlambat">Terlambat</option>
+        <option value="Izin">Izin</option>
+        <option value="Sakit">Sakit</option>
+      </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Simpan Absensi</button>
+  </form>
+</div>
+{% endblock %}

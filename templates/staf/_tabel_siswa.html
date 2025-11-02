@@ -1,0 +1,52 @@
+<div class="table-responsive">
+  <table class="table table-bordered table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th style="width: 50px;">No</th>
+        <th style="width: 120px;">NIS</th>
+        <th>Nama</th>
+        <th style="width: 120px;">Kelas</th>
+        <th style="width: 100px;">Status</th>
+        <th class="text-center" style="width: 110px;">Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in semua_siswa %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ s.nis }}</td>
+        <td>{{ s.nama }}</td>
+        <td>{{ s.kelas }}</td>
+        <td>
+          {% if s.status|lower == 'aktif' %}
+            <span class="badge bg-success">Aktif</span>
+          {% elif s.status|lower == 'nonaktif' %}
+            <span class="badge bg-secondary">Nonaktif</span>
+          {% else %}
+            <span class="badge bg-warning text-dark">{{ s.status or 'Tidak diketahui' }}</span>
+          {% endif %}
+        </td>
+        <td class="text-center">
+          <a href="{{ url_for('staf_siswa.edit_siswa', id=s.id) }}" class="btn btn-sm btn-warning me-1">
+            <i class="bi bi-pencil-square"></i>
+          </a>
+          <form action="{{ url_for('staf_siswa.hapus_siswa', id=s.id) }}" method="post"
+                class="d-inline"
+                onsubmit="return confirm('Yakin ingin hapus data siswa ini?');">
+            <button type="submit" class="btn btn-sm btn-danger">
+              <i class="bi bi-trash"></i>
+            </button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="6" class="text-center text-muted py-4">
+          <i class="bi bi-exclamation-circle"></i>
+          Tidak ditemukan data siswa sesuai filter.
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

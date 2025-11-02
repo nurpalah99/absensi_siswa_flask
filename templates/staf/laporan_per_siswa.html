@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h3>📋 Laporan Absensi Per Siswa</h3>
+  <form method="POST" class="row g-3 mb-4 mt-2">
+    <div class="col-md-4">
+      <label class="form-label">Pilih Siswa</label>
+      <select name="nis" class="form-select" required>
+        <option value="">-- Pilih Siswa --</option>
+        {% for s in semua_siswa %}
+        <option value="{{ s.nis }}" {% if s.nis == nis_filter %}selected{% endif %}>
+          {{ s.nis }} - {{ s.nama }} ({{ s.kelas }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Tanggal Awal</label>
+      <input type="date" name="tgl_awal" class="form-control" value="{{ tgl_awal }}">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">Tanggal Akhir</label>
+      <input type="date" name="tgl_akhir" class="form-control" value="{{ tgl_akhir }}">
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+      <button class="btn btn-primary w-100" type="submit">Tampilkan</button>
+    </div>
+  </form>
+
+  {% if data %}
+  <div class="mb-3">
+    <a href="{{ url_for('staf.export_laporan_per_siswa_pdf', nis=nis_filter, tgl_awal=tgl_awal, tgl_akhir=tgl_akhir) }}"
+	class="btn btn-danger">🖨 Cetak PDF Lengkap</a>
+    <a href="{{ url_for('staf.export_laporan_per_siswa_excel', nis=nis_filter, tgl_awal=tgl_awal, tgl_akhir=tgl_akhir) }}"
+       class="btn btn-success">⬇️ Ekspor Excel</a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped">
+      <thead class="table-dark">
+        <tr>
+          <th>Tanggal</th>
+          <th>Status</th>
+          <th>Jenis Absen</th>
+          <th>Waktu</th>
+          <th>Keterangan</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in data %}
+        <tr>
+          <td>{{ a.tanggal }}</td>
+          <td>{{ a.status }}</td>
+          <td>{{ a.jenis_absen }}</td>
+          <td>{{ a.waktu.strftime('%H:%M:%S') if a.waktu else '-' }}</td>
+          <td>{{ a.keterangan or '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="text-muted">Silakan pilih siswa dan periode untuk menampilkan data.</p>
+  {% endif %}
+</div>
+{% endblock %}

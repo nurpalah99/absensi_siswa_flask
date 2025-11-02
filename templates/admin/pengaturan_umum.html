@@ -1,0 +1,66 @@
+{% extends "admin/base_admin.html" %}
+{% block title %}Pengaturan Umum{% endblock %}
+{% block content %}
+<div class="container mt-4">
+  <h3>⚙️ Pengaturan Umum Sekolah</h3>
+  <form method="POST" class="mt-4">
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-3">
+          <label class="form-label">Jam Masuk</label>
+          <input type="time" name="jam_masuk" value="{{ jam_masuk }}" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label>Jam Awal Pulang</label>
+          <input type="time" name="jam_awal_pulang" value="{{ jam_awal_pulang or '12:00' }}" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Jam Pulang (Default)</label>
+          <input type="time" name="jam_pulang" value="{{ jam_pulang }}" class="form-control" required>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="mb-3">
+          <label class="form-label">Nama Kepala Sekolah</label>
+          <input type="text" name="kepala_sekolah" value="{{ kepala_sekolah }}" class="form-control" placeholder="Misal: KUMASRIN, S.Pd" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Nama Operator / Admin</label>
+          <input type="text" name="operator" value="{{ operator }}" class="form-control" placeholder="Nama anda sebagai admin">
+        </div>
+      </div>
+    </div>
+
+    <hr class="my-4">
+    <h5 class="mb-3">🕒 Pengaturan Waktu Pulang Per Hari</h5>
+
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle text-center">
+        <thead class="table-dark">
+          <tr>
+            <th>Hari</th>
+            <th>Jam Pulang</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for hari in ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"] %}
+          <tr>
+            <td>{{ hari }}</td>
+            <td>
+              <input type="time" name="jam_pulang_{{ hari.lower() }}" 
+                     value="{{ data.get(hari, '') if data else '' }}" 
+                     class="form-control text-center">
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="text-end mt-3">
+      <button type="submit" class="btn btn-primary">💾 Simpan Pengaturan</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
